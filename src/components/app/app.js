@@ -104,8 +104,8 @@ class App extends Component {
             onToggleDone={this.onToggleDone}
           />
           <Footer
-            filter={filter}
             setFilter={this.setFilter}
+            activeFilter={filter}
             doneCount={doneCount}
             deleteDoneItem={this.deleteDoneItem}
           />

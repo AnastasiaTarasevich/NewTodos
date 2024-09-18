@@ -8,7 +8,21 @@ export default class Task extends Component {
     super(props)
     this.state = {
       currentValue: props.label,
+      timeCreated: formatDistanceToNow(new Date(props.created), { addSuffix: true }),
     }
+  }
+
+  componentDidMount() {
+    this.interval = setInterval(() => {
+      const { created } = this.props // Деструктуризация пропсов
+      this.setState({
+        timeCreated: formatDistanceToNow(new Date(created), { addSuffix: true }),
+      })
+    }, 30000)
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.interval)
   }
 
   handleEditChange = (e) => {
@@ -32,9 +46,8 @@ export default class Task extends Component {
   }
 
   render() {
-    const { label, created, isEditing, id, onToggleDone, completed, onEditItem, onDeleteItem } = this.props
-    const { currentValue } = this.state
-    const createdTime = formatDistanceToNow(new Date(created), { addSuffix: true })
+    const { currentValue, timeCreated } = this.state
+    const { label, isEditing, id, onToggleDone, completed, onEditItem, onDeleteItem } = this.props
     const classNames = `${completed ? 'completed' : ''} ${isEditing ? 'editing' : ''}`
 
     return (
@@ -50,7 +63,7 @@ export default class Task extends Component {
           />
           <label htmlFor={id}>
             <span className="description">{label}</span>
-            <span className="created">{`created ${createdTime}`}</span>
+            <span className="created">{`created ${timeCreated}`}</span>
           </label>
           <button className="icon icon-edit" onClick={onEditItem} type="button" aria-label="Edit item" />
           <button className="icon icon-destroy" onClick={onDeleteItem} type="button" aria-label="Delete item" />
