@@ -4,7 +4,7 @@ import PropTypes from 'prop-types'
 import Task from '../task'
 import './task-list.css'
 
-function TaskList({ todos, onDeleteItem, onToggleDone, onEditItem, changeDes }) {
+function TaskList({ todos, onDeleteItem, onToggleDone, onEditItem, changeDes, startTimer, stopTimer }) {
   return (
     <ul className="todo-list">
       {todos.map((item) => (
@@ -19,6 +19,11 @@ function TaskList({ todos, onDeleteItem, onToggleDone, onEditItem, changeDes }) 
           onDeleteItem={() => onDeleteItem(item.id)}
           onToggleDone={() => onToggleDone(item.id)}
           onEditItem={() => onEditItem(item.id)}
+          startTimer={() => startTimer(item.id)}
+          stopTimer={() => stopTimer(item.id)}
+          remainingMinutes={item.remainingMinutes}
+          remainingSeconds={item.remainingSeconds}
+          timerStart={item.timerStart}
         />
       ))}
     </ul>

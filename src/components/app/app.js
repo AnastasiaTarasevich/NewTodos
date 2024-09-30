@@ -25,12 +25,15 @@ class App extends Component {
     }
   }
 
-  static onCreateItem = (label) => ({
+  static onCreateItem = (label, minutes, seconds) => ({
     label,
     completed: false,
     created: new Date(),
     isEditing: false,
     id: Date.now(),
+    timerStart: false,
+    remainingMinutes: minutes || '0',
+    remainingSeconds: seconds || '0',
   })
 
   updateTask = (id, changes) => {
@@ -47,6 +50,7 @@ class App extends Component {
     this.updateTask(id, {
       completed: !arr.find((el) => el.id === id).completed,
     })
+    this.stopTimer(id)
   }
 
   onEditItem = (id) => {
@@ -75,8 +79,8 @@ class App extends Component {
     })
   }
 
-  addItem = (text) => {
-    const newItem = App.onCreateItem(text)
+  addItem = (label, minutes, seconds) => {
+    const newItem = App.onCreateItem(label, minutes, seconds)
     this.setState(({ arr }) => {
       const newArr = [...arr, newItem]
       return { arr: newArr }
@@ -85,6 +89,56 @@ class App extends Component {
 
   setFilter = (filter) => {
     this.setState({ filter })
+  }
+
+  startTimer = (id) => {
+    const { arr } = this.state
+    const task = arr.find((el) => el.id === id)
+    if (!task || task.timerStart) return
+
+    const intervalId = setInterval(() => {
+      this.updateRemainingTime(id)
+    }, 1000)
+
+    this.updateTask(id, { timerStart: true, intervalId })
+  }
+
+  stopTimer = (id) => {
+    const { arr } = this.state
+    const task = arr.find((el) => el.id === id)
+    if (!task || !task.timerStart || !task.intervalId) return
+
+    clearInterval(task.intervalId)
+    this.updateTask(id, { timerStart: false })
+  }
+
+  updateRemainingTime = (id) => {
+    this.setState(({ arr }) => {
+      const newArr = arr.map((el) => {
+        if (el.id === id && el.timerStart) {
+          let { remainingMinutes, remainingSeconds } = el
+          remainingSeconds = parseInt(remainingSeconds, 10)
+          remainingMinutes = parseInt(remainingMinutes, 10)
+
+          if (remainingSeconds === 0 && remainingMinutes === 0) {
+            clearInterval(el.intervalId)
+            return { ...el, timerStart: false }
+          }
+
+          if (remainingSeconds === 0) {
+            remainingMinutes -= 1
+            remainingSeconds = 59
+          } else {
+            remainingSeconds -= 1
+          }
+
+          return { ...el, remainingMinutes, remainingSeconds }
+        }
+        return el
+      })
+
+      return { arr: newArr }
+    })
   }
 
   render() {
@@ -102,6 +156,8 @@ class App extends Component {
             onEditItem={this.onEditItem}
             onDeleteItem={this.deleteItem}
             onToggleDone={this.onToggleDone}
+            startTimer={this.startTimer}
+            stopTimer={this.stopTimer}
           />
           <Footer
             setFilter={this.setFilter}

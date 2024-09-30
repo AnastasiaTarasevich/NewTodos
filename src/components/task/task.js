@@ -14,7 +14,7 @@ export default class Task extends Component {
 
   componentDidMount() {
     this.interval = setInterval(() => {
-      const { created } = this.props // Деструктуризация пропсов
+      const { created } = this.props
       this.setState({
         timeCreated: formatDistanceToNow(new Date(created), { addSuffix: true }),
       })
@@ -22,6 +22,10 @@ export default class Task extends Component {
   }
 
   componentWillUnmount() {
+    const { timerStart, stopTimer, id } = this.props
+    if (timerStart) {
+      stopTimer(id)
+    }
     clearInterval(this.interval)
   }
 
@@ -47,7 +51,20 @@ export default class Task extends Component {
 
   render() {
     const { currentValue, timeCreated } = this.state
-    const { label, isEditing, id, onToggleDone, completed, onEditItem, onDeleteItem } = this.props
+    const {
+      label,
+      isEditing,
+      id,
+      onToggleDone,
+      completed,
+      onEditItem,
+      onDeleteItem,
+      startTimer,
+      stopTimer,
+      remainingMinutes,
+      remainingSeconds,
+      timerStart,
+    } = this.props
     const classNames = `${completed ? 'completed' : ''} ${isEditing ? 'editing' : ''}`
 
     return (
@@ -63,10 +80,41 @@ export default class Task extends Component {
           />
           <label htmlFor={id}>
             <span className="description">{label}</span>
+            <span className="description__button">
+              <button
+                className="icon icon-play"
+                type="button"
+                aria-label="Start timer"
+                onClick={() => startTimer(id)}
+                disabled={timerStart}
+              />
+              <button
+                className="icon icon-pause"
+                type="button"
+                aria-label="Pause timer"
+                onClick={() => stopTimer(id)}
+                disabled={!timerStart}
+              />
+              <span className="time-info">
+                {`${remainingMinutes}:${remainingSeconds < 10 ? `0${remainingSeconds}` : remainingSeconds}`}
+              </span>
+            </span>
             <span className="created">{`created ${timeCreated}`}</span>
           </label>
-          <button className="icon icon-edit" onClick={onEditItem} type="button" aria-label="Edit item" />
-          <button className="icon icon-destroy" onClick={onDeleteItem} type="button" aria-label="Delete item" />
+          <button
+            className="icon icon-edit"
+            onClick={onEditItem}
+            disabled={timerStart}
+            type="button"
+            aria-label="Edit item"
+          />
+          <button
+            className="icon icon-destroy"
+            onClick={onDeleteItem}
+            disabled={timerStart}
+            type="button"
+            aria-label="Delete item"
+          />
         </div>
         {isEditing && (
           <input
@@ -88,10 +136,14 @@ Task.defaultProps = {
   created: new Date(),
   isEditing: false,
   completed: false,
+  remainingMinutes: 0,
+  remainingSeconds: 0,
   onToggleDone: () => {},
   onEditItem: () => {},
   onDeleteItem: () => {},
   changeDes: () => {},
+  startTimer: () => {},
+  stopTimer: () => {},
 }
 
 Task.propTypes = {
@@ -104,4 +156,8 @@ Task.propTypes = {
   onEditItem: PropTypes.func,
   onDeleteItem: PropTypes.func,
   changeDes: PropTypes.func,
+  remainingMinutes: PropTypes.number,
+  remainingSeconds: PropTypes.number,
+  startTimer: PropTypes.func,
+  stopTimer: PropTypes.func,
 }
