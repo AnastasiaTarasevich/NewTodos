@@ -1,13 +1,17 @@
-import React, { Component } from 'react'
+import React, { useState } from 'react'
 
 import NewTasksForm from '../new-task-form'
 import Footer from '../footer'
 import TaskList from '../task-list'
 import './app.css'
 
-class App extends Component {
-  static filterItems = (items, filter) => {
-    switch (filter) {
+function App() {
+  const [arr, setArr] = useState([]) // состояние для задач
+  const [filter, setFilter] = useState('All') // состояние для фильтра
+
+  // Фильтрация задач по критерию (Active, Completed, All)
+  const filterItems = (items, currentFilter) => {
+    switch (currentFilter) {
       case 'Active':
         return items.filter((item) => !item.completed)
       case 'Completed':
@@ -17,15 +21,8 @@ class App extends Component {
     }
   }
 
-  constructor(props) {
-    super(props)
-    this.state = {
-      arr: [],
-      filter: 'All',
-    }
-  }
-
-  static onCreateItem = (label, minutes, seconds) => ({
+  // Функция для создания нового элемента задачи
+  const onCreateItem = (label, minutes, seconds) => ({
     label,
     completed: false,
     created: new Date(),
@@ -36,85 +33,19 @@ class App extends Component {
     remainingSeconds: seconds || '0',
   })
 
-  updateTask = (id, changes) => {
-    this.setState(({ arr }) => {
-      const idx = arr.findIndex((el) => el.id === id)
-      const updatedTask = { ...arr[idx], ...changes }
-      const updatedArr = [...arr.slice(0, idx), updatedTask, ...arr.slice(idx + 1)]
-      return { arr: updatedArr }
+  // Функция для обновления задачи
+  const updateTask = (id, changes) => {
+    setArr((prevArr) => {
+      const idx = prevArr.findIndex((el) => el.id === id)
+      const updatedTask = { ...prevArr[idx], ...changes }
+      const updatedArr = [...prevArr.slice(0, idx), updatedTask, ...prevArr.slice(idx + 1)]
+      return updatedArr
     })
   }
 
-  onToggleDone = (id) => {
-    const { arr } = this.state
-    this.updateTask(id, {
-      completed: !arr.find((el) => el.id === id).completed,
-    })
-    this.stopTimer(id)
-  }
-
-  onEditItem = (id) => {
-    const { arr } = this.state
-    this.updateTask(id, {
-      isEditing: !arr.find((el) => el.id === id).isEditing,
-    })
-  }
-
-  changeDes = (text, id) => {
-    this.updateTask(id, { label: text })
-  }
-
-  deleteDoneItem = () => {
-    this.setState(({ arr }) => {
-      const newArr = arr.filter((el) => !el.completed)
-      return { arr: newArr }
-    })
-  }
-
-  deleteItem = (id) => {
-    this.setState(({ arr }) => {
-      const idx = arr.findIndex((el) => el.id === id)
-      const newArr = [...arr.slice(0, idx), ...arr.slice(idx + 1)]
-      return { arr: newArr }
-    })
-  }
-
-  addItem = (label, minutes, seconds) => {
-    const newItem = App.onCreateItem(label, minutes, seconds)
-    this.setState(({ arr }) => {
-      const newArr = [...arr, newItem]
-      return { arr: newArr }
-    })
-  }
-
-  setFilter = (filter) => {
-    this.setState({ filter })
-  }
-
-  startTimer = (id) => {
-    const { arr } = this.state
-    const task = arr.find((el) => el.id === id)
-    if (!task || task.timerStart) return
-
-    const intervalId = setInterval(() => {
-      this.updateRemainingTime(id)
-    }, 1000)
-
-    this.updateTask(id, { timerStart: true, intervalId })
-  }
-
-  stopTimer = (id) => {
-    const { arr } = this.state
-    const task = arr.find((el) => el.id === id)
-    if (!task || !task.timerStart || !task.intervalId) return
-
-    clearInterval(task.intervalId)
-    this.updateTask(id, { timerStart: false })
-  }
-
-  updateRemainingTime = (id) => {
-    this.setState(({ arr }) => {
-      const newArr = arr.map((el) => {
+  const updateRemainingTime = (id) => {
+    setArr((prevArr) =>
+      prevArr.map((el) => {
         if (el.id === id && el.timerStart) {
           let { remainingMinutes, remainingSeconds } = el
           remainingSeconds = parseInt(remainingSeconds, 10)
@@ -136,44 +67,83 @@ class App extends Component {
         }
         return el
       })
+    )
+  }
 
-      return { arr: newArr }
+  // Функции для управления таймером
+  const startTimer = (id) => {
+    const task = arr.find((el) => el.id === id)
+    if (!task || task.timerStart) return
+
+    const intervalId = setInterval(() => {
+      updateRemainingTime(id)
+    }, 1000)
+
+    updateTask(id, { timerStart: true, intervalId })
+  }
+
+  const stopTimer = (id) => {
+    const task = arr.find((el) => el.id === id)
+    if (!task || !task.timerStart || !task.intervalId) return
+
+    clearInterval(task.intervalId)
+    updateTask(id, { timerStart: false })
+  }
+
+  // Функции для управления задачами
+  const onToggleDone = (id) => {
+    const task = arr.find((el) => el.id === id)
+    updateTask(id, {
+      completed: !task.completed,
+    })
+    stopTimer(id)
+  }
+
+  const onEditItem = (id) => {
+    const task = arr.find((el) => el.id === id)
+    updateTask(id, {
+      isEditing: !task.isEditing,
     })
   }
 
-  render() {
-    const { arr, filter } = this.state
-    const doneCount = arr.filter((el) => !el.completed).length
-    const visibleFilter = App.filterItems(arr, filter)
-
-    return (
-      <section className="todoapp">
-        <NewTasksForm addItem={this.addItem} />
-        <section className="main">
-          <TaskList
-            todos={visibleFilter}
-            changeDes={this.changeDes}
-            onEditItem={this.onEditItem}
-            onDeleteItem={this.deleteItem}
-            onToggleDone={this.onToggleDone}
-            startTimer={this.startTimer}
-            stopTimer={this.stopTimer}
-          />
-          <Footer
-            setFilter={this.setFilter}
-            activeFilter={filter}
-            doneCount={doneCount}
-            deleteDoneItem={this.deleteDoneItem}
-          />
-        </section>
-      </section>
-    )
+  const changeDes = (text, id) => {
+    updateTask(id, { label: text })
   }
-}
 
-App.defaultProps = {
-  arr: [],
-  filter: 'All',
+  const deleteDoneItem = () => {
+    setArr((prevArr) => prevArr.filter((el) => !el.completed))
+  }
+
+  const deleteItem = (id) => {
+    setArr((prevArr) => prevArr.filter((el) => el.id !== id))
+  }
+
+  const addItem = (label, minutes, seconds) => {
+    const newItem = onCreateItem(label, minutes, seconds)
+    setArr((prevArr) => [...prevArr, newItem])
+  }
+
+  // Количество выполненных задач
+  const doneCount = arr.filter((el) => !el.completed).length
+  const visibleFilter = filterItems(arr, filter)
+
+  return (
+    <section className="todoapp">
+      <NewTasksForm addItem={addItem} />
+      <section className="main">
+        <TaskList
+          todos={visibleFilter}
+          changeDes={changeDes}
+          onEditItem={onEditItem}
+          onDeleteItem={deleteItem}
+          onToggleDone={onToggleDone}
+          startTimer={startTimer}
+          stopTimer={stopTimer}
+        />
+        <Footer setFilter={setFilter} activeFilter={filter} doneCount={doneCount} deleteDoneItem={deleteDoneItem} />
+      </section>
+    </section>
+  )
 }
 
 export default App
